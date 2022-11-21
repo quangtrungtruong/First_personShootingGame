@@ -6,6 +6,30 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="main.css">
 	</head>
+	<script id="vertex-shader" type="x-shader/x-vertex">
+		varying vec2 vUv;
+		uniform float time2;
+
+		void main() {
+			//pass the UVs to shader
+			vUv =uv;
+
+			//slide texture coordinates
+			//vUv.x += 0.3;
+
+			//modelViewMatrix applies the rotation, projection matrix applies perspective
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+		}
+	</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+    uniform sampler2D ball_texture;
+    varying vec2 vUv;
+
+    void main() {
+        gl_FragColor = texture2D(ball_texture, vUv);
+    }
+</script>
 	<body>
 		<div id="info">
 		</div>
@@ -45,6 +69,7 @@
 			const clock = new THREE.Clock();
 
 			const scene = new THREE.Scene();
+
 			scene.background = new THREE.Color( 0x88ccee );
 			scene.fog = new THREE.Fog( 0x88ccee, 0, 50 );
 
@@ -102,8 +127,23 @@
 			scene.add( env );
 			scene.environment = envMap;
 
-			const texture = new THREE.TextureLoader().load( 'textures/soccer_ball.jpg' );
-			texture.magFilter = THREE.NearestFilter;
+			// material ball
+			// const texture = new THREE.TextureLoader().load( 'textures/soccer_ball.jpg' );
+			// texture.magFilter = THREE.NearestFilter;
+			let ball_texture = new THREE.TextureLoader().load( 'textures/soccer_ball.jpg' );
+			// ball_texture.anisotropy = renderer.getMaxAnisotropy();
+			// ball_texture.wrapS = THREE.RepeatWrapping;
+			// ball_texture.wrapT = THREE.RepeatWrapping;
+
+			let uniforms = {
+				texture1: {type: "t", value: ball_texture},
+				time2: {type: "f", value: 0.0}
+			};
+			const material = new THREE.ShaderMaterial({
+				uniforms: uniforms,
+				vertexShader: document.getElementById( 'vertex-shader' ).textContent,
+				fragmentShader: document.getElementById( 'fragment-shader' ).textContent
+			});
 
 			const sphereGeometry = new THREE.IcosahedronGeometry( SPHERE_RADIUS, 5 );
 			// const sphereMaterial = new THREE.MeshLambertMaterial( { color: 0xbbbb44 } );
@@ -114,7 +154,8 @@
 			for ( let i = 0; i < NUM_SPHERES; i ++ ) {
 
 				// const sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
-				const sphere = new THREE.Mesh( sphereGeometry, new THREE.MeshLambertMaterial( { map: texture, overdraw: 0.5 } ) );
+				// const sphere = new THREE.Mesh( sphereGeometry, new THREE.MeshLambertMaterial( { map: texture, overdraw: 0.5 } ) );
+				const sphere = new THREE.Mesh( sphereGeometry, material);
 				sphere.castShadow = true;
 				sphere.receiveShadow = true;
 
@@ -498,6 +539,8 @@
 					teleportPlayerIfOob();
 
 				}
+
+				uniforms.time2.value += 0.02;
 
 				renderer.render( scene, camera );
 
